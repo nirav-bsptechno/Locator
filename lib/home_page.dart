@@ -4,6 +4,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
+import 'package:locator_app/global/constants.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -29,6 +31,7 @@ class HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    getLatLong();
     initPlatformState();
 
     _locationSubscription =
@@ -38,6 +41,25 @@ class HomePageState extends State<HomePage> {
       });
     });
   }
+
+  getLatLong() async {
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    latitudeM = prefs.getDouble(Constants.RES_LATITUDE);
+    longitudeM = prefs.getDouble(Constants.RES_LONGITUDE);
+
+
+  }
+
+   setLatLong(double dLatitude,double dLongitude) async {
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setDouble(Constants.RES_LATITUDE,dLatitude);
+    prefs.setDouble(Constants.RES_LONGITUDE,dLongitude);
+
+
+  }
+
 
   initPlatformState() async {
     Map<String, double> location;
@@ -108,9 +130,10 @@ class HomePageState extends State<HomePage> {
             height: MediaQuery.of(context).size.height,
             width: MediaQuery.of(context).size.width,
             child: GoogleMap(
-              options: GoogleMapOptions(myLocationEnabled: true),
+              options: GoogleMapOptions(tiltGesturesEnabled: true,myLocationEnabled: true,),
               onMapCreated: (GoogleMapController controller) {
                 mapController = controller;
+
                 startTime();
               },
             ),
@@ -346,6 +369,7 @@ class HomePageState extends State<HomePage> {
       double longitudeM = _currentLocation["longitude"];
       //print(currentLocation["longitude"]);
 
+      setLatLong(latitudeM,longitudeM);
       if (latitudeM != null &&
           longitudeM.round() != 0 &&
           longitudeM != null &&
@@ -365,7 +389,24 @@ class HomePageState extends State<HomePage> {
         initPlatformState();
       }
     } else {
-      initPlatformState();
+      getLatLong();
+
+      if (latitudeM != null &&
+          longitudeM.round() != 0 &&
+          longitudeM != null &&
+          longitudeM.round() != 0) {
+        mapController.animateCamera(
+          CameraUpdate.newCameraPosition(
+            CameraPosition(target: LatLng(latitudeM, longitudeM), zoom: 20.0),
+          ),
+        );
+        mapController.clearMarkers();
+        mapController.addMarker(
+          MarkerOptions(
+              position: LatLng(latitudeM, longitudeM),
+              infoWindowText: InfoWindowText("My Location", "My Location")),
+        );
+      }
     }
   }
 }
